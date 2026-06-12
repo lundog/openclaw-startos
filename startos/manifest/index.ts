@@ -30,7 +30,8 @@ export const manifest = setupManifest({
   },
   // Declared optional; setupDependencies (dependencies.ts) flips the selected
   // local backend to a `running` dependency based on the Configure AI Provider
-  // model selection. Cloud providers need no dependency.
+  // model selection. Cloud providers need no dependency. Channel integrations
+  // (e.g. SimpleX Chat) are likewise optional and activated by setupDependencies.
   dependencies: {
     ollama: {
       optional: true,
@@ -63,6 +64,15 @@ export const manifest = setupManifest({
       metadata: {
         icon: 'https://raw.githubusercontent.com/Start9Labs/llama-cpp-startos/master/icon.png',
         title: 'llama.cpp',
+      },
+    },
+    'simplex-chat': {
+      description:
+        'Enables the SimpleX Chat channel. Files are exchanged via dependency volume mounts; the bot is driven over its WebSocket interface.',
+      optional: true,
+      metadata: {
+        title: 'SimpleX Chat',
+        icon: 'https://raw.githubusercontent.com/Start9-Community/simplex-chat-startos/master/icon.svg',
       },
     },
   },
