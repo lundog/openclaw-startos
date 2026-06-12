@@ -5,6 +5,7 @@ import { openclawJson } from './fileModels/openclaw.json'
 import { startCliConfigYaml } from './fileModels/startCliConfig.yaml'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
+import { withSimplexMounts } from './simplex'
 import { mainMounts, uiPort } from './utils'
 
 const providerKeyEnvVar: Record<string, string> = {
@@ -40,10 +41,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
   await startCliConfigYaml.merge(effects, { host: `https://${osIp}` })
 
   // Create subcontainer with volume mount for persistent data
+  // (plus SimpleX file exchange mounts when that channel is enabled)
   const openclawSub = await sdk.SubContainer.of(
     effects,
     { imageId: 'openclaw' },
-    mainMounts(),
+    await withSimplexMounts(effects, mainMounts()),
     'openclaw-sub',
   )
 

@@ -12,6 +12,28 @@ const whatsappChannelShape = z.object({
   allowFrom: z.array(z.string()).optional().catch(undefined),
 })
 
+// SimpleX channel via the openclaw-simplex plugin. File exchange follows the
+// simplex-chat-startos contract (docs/file-exchange-architecture.md in that
+// repo): inbound files are read at /simplex/inbound (dependency mount),
+// outbound files are written to files.outboundDir (/simplex/outbound).
+const simplexChannelShape = z.object({
+  enabled: z.boolean(),
+  connection: z
+    .object({
+      connectTimeoutMs: z.number().optional().catch(undefined),
+      wsUrl: z.string().optional().catch(undefined),
+    })
+    .optional()
+    .catch(undefined),
+  files: z
+    .object({
+      inboundDir: z.string().optional().catch(undefined),
+      outboundDir: z.string().optional().catch(undefined),
+    })
+    .optional()
+    .catch(undefined),
+})
+
 const authSchema = z.object({
   mode: z.literal('password').catch('password'),
   password: z.string().optional().catch(undefined),
@@ -66,6 +88,7 @@ const shape = z.object({
     .object({
       telegram: telegramChannelShape.optional().catch(undefined),
       whatsapp: whatsappChannelShape.optional().catch(undefined),
+      'openclaw-simplex': simplexChannelShape.optional().catch(undefined),
     })
     .optional()
     .catch(undefined),

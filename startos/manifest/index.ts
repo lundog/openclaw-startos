@@ -28,16 +28,15 @@ export const manifest = setupManifest({
   alerts: {
     install: installAlert,
   },
-  dependencies: {},
-  // dependencies: {
-  //   synapse: {
-  //     description:
-  //       'Used as a Matrix homeserver for multi-channel messaging.',
-  //     optional: true,
-  //     metadata: {
-  //       title: 'Synapse Matrix Homeserver',
-  //       icon: 'https://matrix.org/images/matrix-logo.svg',
-  //     },
-  //   },
-  // },
+  dependencies: {
+    'simplex-chat': {
+      description:
+        'Enables the SimpleX Chat channel. Files are exchanged via dependency volume mounts; the bot is driven over its WebSocket interface.',
+      optional: true,
+      metadata: {
+        title: 'SimpleX Chat',
+        icon: 'https://raw.githubusercontent.com/Start9-Community/simplex-chat-startos/master/icon.svg',
+      },
+    },
+  },
 })
