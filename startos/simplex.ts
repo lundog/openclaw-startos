@@ -98,20 +98,21 @@ export async function withSimplexMounts(
     },
   })
 
-  // The contract dirs live together under the volume's `simplex` subpath
-  // (a single mount on the simplex-chat side; see the contract doc).
+  // The contract dirs live together under the volume's `.simplex/media`
+  // subpath (a single mount on the simplex-chat side; see the contract doc).
+  // The container mountpoints (/simplex/*) are unchanged by that relocation.
   return mounts
     .mountDependency({
       dependencyId: 'simplex-chat',
       volumeId: 'main',
-      subpath: 'simplex/inbound',
+      subpath: '.simplex/media/inbound',
       mountpoint: SIMPLEX_INBOUND_DIR,
       readonly: true,
     })
     .mountDependency({
       dependencyId: 'simplex-chat',
       volumeId: 'main',
-      subpath: 'simplex/outbound',
+      subpath: '.simplex/media/outbound',
       mountpoint: SIMPLEX_OUTBOUND_DIR,
       readonly: false,
     })
