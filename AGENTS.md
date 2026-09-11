@@ -27,6 +27,9 @@ verified, tried, and decided belongs in the commit message and the PR body.
 ## This repo
 
 - **`openclaw.json` is co-owned with the application.** OpenClaw rewrites it at runtime — `/model` in chat changes `agents.defaults.model`. That is why `dependencies.ts` reads the model with `.const()` instead of trusting the action to be the only writer; keep any state derived from that file reactive.
+- **`auth-profiles.json` is the package's, under `.startos/` — never move it into `.openclaw/agents/<id>/agent/`.** OpenClaw treats a file of that name there as a retired credential source: doctor archives it, and the gateway refuses an agent whose SQLite store is empty while it exists.
+- **Browser device pairing cannot be disabled** — `dangerouslyDisableDeviceAuth` and `allowInsecureAuth` are retired upstream and doctor strips them. `approve-devices` is how a browser gets past "Approve this browser"; don't reintroduce the flags.
+- **`gateway.trustedProxies` is written from the bridge address in `main.ts` every start.** StartOS's proxy connects from it, and OpenClaw answers unattributed forwarded headers with `403 proxy_attribution_required` — the whole UI. Keep it derived, not hard-coded.
 - **The health check resolves the service's own bridge address via `sdk.host.getOwn`.** The retired `<pkg>.startos` DNS name no longer resolves between containers; same for reaching sibling services (`simplex.ts`, local backends).
 - **`login-to-os` grants root-equivalent server control**, which is why it is `important` and raised only after `check-login` finds `start-cli` unauthenticated — never promote it to `critical` or run it at install.
 - **`--allow-unconfigured` keeps the gateway starting before a provider exists**, so the UI can show what is missing. Don't remove it to "fail fast".

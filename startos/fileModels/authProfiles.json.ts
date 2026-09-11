@@ -1,8 +1,6 @@
 import { FileHelper, z } from '@start9labs/start-sdk'
 import { sdk } from '../sdk'
 
-// Auth Profiles: ~/.openclaw/agents/<agentId>/agent/auth-profiles.json
-
 // Default agent ID - openclaw uses 'main' for the primary agent
 export const defaultAgentId = 'main'
 
@@ -28,11 +26,10 @@ const shape = z.object({
   profiles: z.any(),
 })
 
+// Not under `.openclaw/agents/<id>/agent/`: OpenClaw archives `auth-profiles.json`
+// there as a retired credential source and refuses an owner with an empty store.
 export const authProfilesJson = FileHelper.json(
-  {
-    base: sdk.volumes.main,
-    subpath: `.openclaw/agents/${defaultAgentId}/agent/auth-profiles.json`,
-  },
+  { base: sdk.volumes.main, subpath: '.startos/auth-profiles.json' },
   shape,
 )
 

@@ -46,22 +46,28 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // Update start-cli config with host URL
   await startCliConfigYaml.merge(effects, { host: `https://${osIp}` })
 
-  // The gateway's own LXC-bridge (lxcbr0) URL for its `ui` interface, e.g.
-  // `http://10.0.3.1:18789`. Replaces the retired `openclaw.startos:<port>` DNS
-  // name for the in-box health check. The map fn returns just the resolved URL,
-  // so `.const()` re-runs `main` only if that URL changes.
-  const uiUrl = await sdk.host
+  // The gateway's own LXC-bridge (lxcbr0) address for its `ui` interface, e.g.
+  // `http://10.0.3.1:18789`: the in-box health check target, and the address
+  // StartOS's reverse proxy connects from, which OpenClaw must be told to trust.
+  const bridge = await sdk.host
     .getOwn(effects, uiHostId, (host) => {
-      const iface = Object.values(host?.bindings ?? {})
+      const addresses = Object.values(host?.bindings ?? {})
         .flatMap((b) => Object.values(b.interfaces))
         .find((i) => i.id === uiInterfaceId)
-      return iface
-        ? iface.addressInfo
-            .filter({ kind: 'bridge', predicate: (h) => !h.ssl })
-            .format('urlstring')[0]
-        : undefined
+        ?.addressInfo.filter({ kind: 'bridge', predicate: (h) => !h.ssl })
+        .filter({ kind: 'ipv4' })
+      return {
+        url: addresses?.format('urlstring')[0],
+        proxies:
+          addresses?.format('hostname-info').map((h) => h.hostname) ?? [],
+      }
     })
     .const()
+
+  // Unattributed forwarded headers get a 403 (`proxy_attribution_required`).
+  await openclawJson.merge(effects, {
+    gateway: { trustedProxies: bridge.proxies },
+  })
 
   // Base volume mount, then let each optional integration append its own mounts
   // when enabled (each returns mounts unchanged when disabled).
@@ -131,8 +137,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
         ready: {
           display: i18n('Web Interface'),
           fn: () =>
-            uiUrl
-              ? sdk.healthCheck.checkWebUrl(effects, uiUrl, {
+            bridge.url
+              ? sdk.healthCheck.checkWebUrl(effects, `${bridge.url}/healthz`, {
                   successMessage: i18n('OpenClaw Gateway is ready'),
                   errorMessage: i18n('OpenClaw Gateway is not ready'),
                 })

@@ -69,13 +69,13 @@ One volume, holding the agent and everything it knows.
 | ------ | ----------- | ----------------------- |
 | `main` | `/data`     | The agent's entire home |
 
-| Path                                             | Written by  | Holds                                   |
-| ------------------------------------------------ | ----------- | --------------------------------------- |
-| `.openclaw/openclaw.json`                        | Actions     | The gateway and agent configuration     |
-| `.openclaw/agents/main/agent/auth-profiles.json` | An action   | Provider API keys                       |
-| `.openclaw/workspace/`                           | Both        | The agent's identity, memory, and files |
-| `.startos/config.yaml`                           | The package | Where `start-cli` points                |
-| `simplex.json`                                   | An action   | Whether SimpleX file exchange is on     |
+| Path                          | Written by  | Holds                                   |
+| ----------------------------- | ----------- | --------------------------------------- |
+| `.openclaw/openclaw.json`     | Actions     | The gateway and agent configuration     |
+| `.openclaw/workspace/`        | Both        | The agent's identity, memory, and files |
+| `.startos/auth-profiles.json` | An action   | Provider API keys                       |
+| `.startos/config.yaml`        | The package | Where `start-cli` points                |
+| `simplex.json`                | An action   | Whether SimpleX file exchange is on     |
 
 **`SOUL.md`, `IDENTITY.md` and `HEARTBEAT.md` are re-copied from the image on every install and upgrade**, so an upstream revision of the agent's own instructions reaches an existing install. **`MEMORY.md` is not** — it is seeded once and then left alone, because it is what the agent has accumulated.
 
@@ -94,9 +94,9 @@ Four models, each owning a different boundary.
 
 **The main configuration is shared with the application, not owned by the package.** OpenClaw edits it too — changing the model from inside the chat writes to the same file — which is why the dependency declaration reads it reactively rather than trusting the action to be the only writer.
 
-Four gateway settings are **pinned** with `z.literal(true)`: the control UI being enabled, insecure auth being allowed, the host-header origin fallback, and device auth being disabled. Those are not casual choices, and the reason is structural: **StartOS fronts the gateway with its own reverse proxy on addresses that OpenClaw's origin and device checks reject.** With them on, the interface simply refuses to authenticate. What remains in front of the gateway is its password — see [Network Access and Interfaces](#network-access-and-interfaces).
+Two gateway settings are **pinned** with `z.literal(true)`: the control UI being enabled, and the host-header origin fallback. The reason is structural: **StartOS fronts the gateway with its own reverse proxy on addresses that OpenClaw's origin check rejects.** With the fallback off, the interface simply refuses to connect. `main` also writes `gateway.trustedProxies` every start, set to the bridge address the proxy connects from — without it OpenClaw answers every proxied request with `403 proxy_attribution_required`. What remains in front of the gateway is its password and a one-time approval per browser — see [Network Access and Interfaces](#network-access-and-interfaces).
 
-**API keys are stored in one place and consumed in another.** The action writes them into the auth-profiles file; OpenClaw reads them from the environment. `main` bridges the two at start, so a key added by the action reaches the gateway on the restart that follows.
+**API keys are stored in one place and consumed in another.** The action writes them into the auth-profiles file; OpenClaw reads them from the environment. `main` bridges the two at start, so a key added by the action reaches the gateway on the restart that follows. The file is the package's, which is why it lives under `.startos/` and not in OpenClaw's agent directory: a file of that name there is a retired credential source that OpenClaw's doctor archives and that makes the gateway refuse an agent whose own credential store is empty.
 
 The `start-cli` configuration is rewritten at every start with the server's current address, so the agent's administrative tooling follows the box rather than a value recorded at install.
 
@@ -129,7 +129,7 @@ One interface.
 
 Bound on the `ui-multi` MultiHost over HTTP and not masked.
 
-**The gateway password is the only gate.** OpenClaw's device authentication and origin checking are turned off for the reason given under [File Models](#file-models), so anyone who can reach this address and knows the password has the agent — and, if StartOS access has been granted, the server. A `critical` task blocks the service from starting until that password is set, so there is no window where it is reachable without one.
+**The gateway password is the gate, and each browser is approved once.** OpenClaw's origin checking is relaxed for the reason given under [File Models](#file-models); its device pairing is not, and cannot be. A browser that passes the password is held at "Approve this browser" until the Approve Browser Pairing action admits it, and it then keeps a per-device credential until it is removed in the Web UI's device list. So anyone who can reach this address, knows the password, and can run that action has the agent — and, if StartOS access has been granted, the server. A `critical` task blocks the service from starting until that password is set, so there is no window where it is reachable without one.
 
 Outbound, the gateway talks to whichever provider is configured, to any messaging channel you connect, and — for local backends and SimpleX — to the sibling service over the internal bridge.
 
@@ -137,15 +137,19 @@ Outbound, the gateway talks to whichever provider is configured, to any messagin
 
 Install creates the agent's directory structure, seeds its workspace from the image, points `start-cli` at the server, and pins the gateway settings. It then raises **two `critical` tasks**: set a gateway password, and configure an AI provider.
 
+The first visit to the Web UI from any browser ends at "Approve this browser" after the password; running **Approve Browser Pairing** admits it and the page connects on its own.
+
 **Neither can be skipped** — `critical` blocks startup, and an agent with no model and no password is not a usable state.
 
 Once running, the gateway comes up on its interface and two more things happen automatically: it checks whether `start-cli` is authenticated and raises a task if not, and it writes the server snapshot into the agent's memory.
 
 **Granting StartOS access is opt-in and deliberately not a critical task.** It is offered only after the gateway is up and only because the agent could not authenticate — see the action below before running it.
 
+**Updating from an older release migrates OpenClaw's state.** The migration moves the auth-profiles file out of the agent directory, then runs OpenClaw's own `doctor --fix --non-interactive` and its session import against the stopped service — the same repair OpenClaw's updater runs. A nonzero exit fails the update with doctor's output, leaves the data version where it was, and re-runs the migration on the next init; the Repair OpenClaw action is the manual route for anything doctor reports it cannot fix on its own.
+
 ## Actions
 
-Seven actions.
+Nine actions.
 
 ### Set Gateway Password
 
@@ -181,6 +185,14 @@ Enables the SimpleX channel and its DM policy, and turns file exchange with the 
 - **What it changes:** the channel configuration, the plugin policy, and whether the bridge's directories are mounted.
 - It repairs the plugin's enablement and allow-list entries when it skips an install because the plugin is already current — an installed plugin still has to be enabled and named to load.
 
+### Approve Browser Pairing
+
+Admits every browser waiting at "Approve this browser" on the Web UI.
+
+- **Requires the service to be running**, since the pending requests live in the gateway.
+- **What it changes:** each pending pairing request becomes an approved operator device with a durable per-device credential. Remove one from the Web UI's device list.
+- **Repeat safety:** approves whatever is pending at that moment — nothing, if nobody is waiting — so run it right after your own login attempt, not on a schedule.
+
 ### Login to StartOS
 
 Authenticates the agent's `start-cli` against this server, using your StartOS master password.
@@ -195,6 +207,15 @@ Removes that session.
 
 - **What it changes:** the stored authentication, deleted.
 - The agent keeps working; it just cannot administer the server until you log in again.
+
+### Repair OpenClaw
+
+Runs one of OpenClaw's own maintenance commands against the stopped service and returns its output and exit code.
+
+- **Requires the service to be stopped.** Doctor takes ownership of the state database.
+- **Two commands, each with a report-only default:** `doctor --lint` reports, `doctor --fix --non-interactive` repairs config, plugin policy and state; `doctor --session-sqlite dry-run` counts importable legacy session history, `--session-sqlite import` imports it.
+- **What it changes:** with a toggle on, whatever doctor decides to repair — config normalization, state-database migrations, legacy file imports. Back up first; the action's warning says so.
+- The package update already runs the repairing forms for you (see [Installation and First-Run Flow](#installation-and-first-run-flow)); this action is for a gateway that still refuses to start afterwards, or for reading doctor's report.
 
 ## Tasks
 
@@ -212,9 +233,9 @@ Three, two of them blocking.
 
 One check, on the only daemon.
 
-| Check     | Displayed as    | Method                                 | Grace |
-| --------- | --------------- | -------------------------------------- | ----- |
-| `primary` | "Web Interface" | The gateway answers on its own address | 40s   |
+| Check     | Displayed as    | Method                                              | Grace |
+| --------- | --------------- | --------------------------------------------------- | ----- |
+| `primary` | "Web Interface" | The gateway's `/healthz` answers on its own address | 40s   |
 
 **It queries the gateway over the internal bridge** using the service's own resolved address rather than a hostname, so it survives the address changing and does not depend on name resolution between containers.
 
@@ -233,7 +254,7 @@ A restored instance comes back configured and remembers what it knew. The `start
 ## Limitations and Differences
 
 1. **Granting StartOS access gives the agent root-equivalent control of the server.** It is optional and revocable, and it is the single most consequential thing this package can do.
-2. **Device authentication and origin checking are disabled**, because StartOS's addresses do not satisfy them. The gateway password is the only gate.
+2. **Origin checking is relaxed and the reverse proxy is trusted**, because StartOS's addresses do not satisfy OpenClaw's checks. The gateway password and a one-time approval per browser are the gate.
 3. **The backup holds every credential**, including the server session.
 4. **The configuration is co-owned with the application**, which edits it at runtime — a change made in the chat is as real as one made through an action.
 5. **The agent's memory contains a server inventory**, rewritten every start.
@@ -258,7 +279,7 @@ volumes:
   main: /data # HOME and OPENCLAW_STATE_DIR both live here
 file_models:
   - .openclaw/openclaw.json # gateway + agent config; OpenClaw writes it too
-  - .openclaw/agents/main/agent/auth-profiles.json # provider API keys
+  - .startos/auth-profiles.json # provider API keys; package-owned, not OpenClaw's agent dir
   - .startos/config.yaml # start-cli host, rewritten each start
   - simplex.json # whether SimpleX file exchange is enabled
 startos_managed_env_vars:
@@ -275,15 +296,17 @@ dependencies:
   - llama-cpp # same
   - simplex-websocket-bridge # optional, only while file exchange is enabled
 interfaces:
-  ui: { type: ui, port: 18789 } # gateway password is the only gate
+  ui: { type: ui, port: 18789 } # gateway password + one-time browser approval (approve-devices)
 actions:
   - set-password
   - configure-api-credentials
   - connect-telegram
   - connect-whatsapp # only-running
   - configure-simplex
+  - approve-devices # only-running; admits browsers waiting to pair with the Web UI
   - login-to-os # grants root-equivalent StartOS control
   - revoke-startos-access
+  - repair-openclaw # only-stopped; runs `openclaw doctor`
 tasks:
   - { action: set-password, severity: critical } # reactive
   - { action: configure-api-credentials, severity: critical } # install
