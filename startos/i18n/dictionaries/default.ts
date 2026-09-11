@@ -122,16 +122,32 @@ const dict = {
   // repair-openclaw action
   'Repair OpenClaw': 94,
   'Run one of OpenClaw’s maintenance commands against the stopped service.': 95,
-  Command: 96,
-  'Repair config and database (doctor --fix)': 97,
-  'Apply recommended repairs': 98,
-  'If not checked, no changes will be made.': 99,
-  'Import sessions to SQLite (doctor --session-sqlite)': 100,
-  'Apply changes': 101,
-  'Maintenance Result': 102,
+  'Back up the service before applying repairs.': 96,
+  Command: 97,
+  'Repair config and database (doctor --fix)': 98,
+  'Apply recommended repairs': 99,
+  'If not checked, no changes will be made.': 100,
+  'Import sessions to SQLite (doctor --session-sqlite)': 101,
+  'Apply changes': 102,
+  'Maintenance Result': 103,
   'Exit Code': 104,
   Output: 105,
-  'No output': 107,
+  'No output': 106,
+
+  // versions/current.ts
+  'OpenClaw could not migrate its state': 107,
+
+  // approve-devices action
+  'Approve Browser Pairing': 108,
+  'Approve every browser waiting to pair with the Web UI. Log in to the Web UI first; it says "pairing required" until this runs.': 109,
+  'Only run this right after you tried to log in yourself: every pending request is approved, and an approved browser keeps its access until you remove it in the Web UI.': 110,
+  'Could not read pairing requests': 111,
+  'Nothing to approve': 112,
+  'No browser is waiting to pair. Open the Web UI, log in with the gateway password, then run this action.': 113,
+  'Could not approve pairing request': 114,
+  'Pairing approved': 115,
+  'The Web UI reconnects on its own; reload it if it does not.': 116,
+  Approved: 117,
 } as const
 
 /**

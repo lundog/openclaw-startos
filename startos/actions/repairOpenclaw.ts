@@ -1,38 +1,8 @@
 import { sdk } from '../sdk'
-import { mainMounts } from '../utils'
+import { DOCTOR_TIMEOUT_MS, runOpenclawCli } from '../utils'
 import { i18n } from '../i18n'
 
 const { InputSpec, Value, Variants } = sdk
-
-/**
- * Run one of OpenClaw's maintenance commands against the stopped service and
- * show what it printed.
- */
-
-/**
- * `doctor` reports; `doctor --fix` repairs.
- */
-function repairCommand(apply: boolean): string[] {
-  return apply
-    ? // No TTY here, so a repair that wants a prompt must decline rather than hang.
-      ['openclaw', 'doctor', '--fix', '--non-interactive']
-    : ['openclaw', 'doctor']
-}
-
-/**
- * `dry-run` reports; `import` migrates and archives the legacy stores.
- */
-function sessionsCommand(apply: boolean): string[] {
-  return [
-    'openclaw',
-    'doctor',
-    '--session-sqlite',
-    apply ? 'import' : 'dry-run',
-    // Per-agent stores live under agents/<id>/sessions; without this only the
-    // top-level store is considered and the gateway still finds a legacy one.
-    '--session-sqlite-all-agents',
-  ]
-}
 
 const MAX_OUTPUT_CHARS = 100_000
 
@@ -52,7 +22,7 @@ export const repairOpenclaw = sdk.Action.withInput(
     description: i18n(
       'Run one of OpenClaw’s maintenance commands against the stopped service.',
     ),
-    warning: null,
+    warning: i18n('Back up the service before applying repairs.'),
     allowedStatuses: 'only-stopped',
     group: null,
     visibility: 'enabled',
@@ -91,21 +61,24 @@ export const repairOpenclaw = sdk.Action.withInput(
   async () => ({ command: { selection: 'repair' as const, value: {} } }),
 
   async ({ effects, input }) => {
-    const command =
+    // Bare `doctor` still migrates state; only `--lint` (and `--json`) is read-only.
+    const args =
       input.command.selection === 'sessions'
-        ? sessionsCommand(input.command.value.apply)
-        : repairCommand(input.command.value.apply)
+        ? [
+            'doctor',
+            '--session-sqlite',
+            input.command.value.apply ? 'import' : 'dry-run',
+            '--session-sqlite-all-agents',
+          ]
+        : input.command.value.apply
+          ? ['doctor', '--fix', '--non-interactive']
+          : ['doctor', '--lint']
 
-    const result = await sdk.SubContainer.withTemp(
+    const result = await runOpenclawCli(
       effects,
-      { imageId: 'openclaw' },
-      mainMounts(),
       'openclaw-doctor',
-      (subc) =>
-        subc.exec(command, {
-          user: 'node',
-          env: { HOME: '/data', OPENCLAW_STATE_DIR: '/data/.openclaw' },
-        }),
+      args,
+      DOCTOR_TIMEOUT_MS,
     )
 
     const stdout = String(result.stdout ?? '').trim()
@@ -117,7 +90,7 @@ export const repairOpenclaw = sdk.Action.withInput(
     return {
       version: '1',
       title: i18n('Maintenance Result'),
-      message: `${command.join(' ')} — ${i18n('Exit Code')}: ${result.exitCode}`,
+      message: `openclaw ${args.join(' ')} — ${i18n('Exit Code')}: ${result.exitCode ?? result.exitSignal}`,
       result: {
         type: 'single',
         name: i18n('Output'),

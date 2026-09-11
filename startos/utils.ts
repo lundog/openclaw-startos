@@ -16,6 +16,36 @@ export function mainMounts() {
   })
 }
 
+// Doctor budgets 30s of integrity scans per database before it migrates anything.
+export const DOCTOR_TIMEOUT_MS = 1_800_000
+
+export const OPENCLAW_CLI_ENV = {
+  HOME: '/data',
+  OPENCLAW_STATE_DIR: '/data/.openclaw',
+}
+
+// `node` because OpenClaw refuses state and plugins the gateway's uid does not
+// own; the timeout clears `exec`'s 30s SIGKILL default.
+export async function runOpenclawCli(
+  effects: T.Effects,
+  name: string,
+  args: string[],
+  timeoutMs = 600_000,
+) {
+  return sdk.SubContainer.withTemp(
+    effects,
+    { imageId: 'openclaw' },
+    mainMounts(),
+    name,
+    (subc) =>
+      subc.exec(
+        ['openclaw', ...args],
+        { user: 'node', env: OPENCLAW_CLI_ENV },
+        timeoutMs,
+      ),
+  )
+}
+
 const credentialsSchema = z.object({ apiKey: z.string() })
 
 /**

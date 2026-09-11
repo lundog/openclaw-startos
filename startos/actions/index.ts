@@ -1,4 +1,5 @@
 import { sdk } from '../sdk'
+import { approveDevices } from './approveDevices'
 import { configureApiCredentials } from './configureApiCredentials'
 import { connectTelegram } from './connectTelegram'
 import { connectWhatsapp } from './connectWhatsapp'
@@ -17,5 +18,6 @@ export const actions = sdk.Actions.of()
   .addAction(configureSimplex)
   // .addAction(configureSynapse)
   .addAction(loginToOs)
+  .addAction(approveDevices)
   .addAction(repairOpenclaw)
   .addAction(revokeStartOsAccess)

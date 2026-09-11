@@ -4,7 +4,7 @@ import { manifest } from '../manifest'
 import { i18n } from '../i18n'
 import { simplexJson } from '../fileModels/simplex.json'
 import { openclawJson } from '../fileModels/openclaw.json'
-import { mainMounts } from '../utils'
+import { OPENCLAW_CLI_ENV, runOpenclawCli } from '../utils'
 import {
   bridgeWsUrl,
   INBOUND_MOUNTPOINT,
@@ -64,33 +64,6 @@ function installedPluginVersion(listStdout: string): string | undefined {
   }
 }
 
-const CLI_ENV = { HOME: '/data', OPENCLAW_STATE_DIR: '/data/.openclaw' }
-
-// Runs openclaw as `node` (uid 1000) so the installed plugin tree is node-owned
-// and the node gateway loads it — a root-owned install is blocked by OpenClaw's
-// ownership policy. The high timeout clears `subc.exec`'s 30s default, which
-// would SIGKILL the npm download mid-flight (it resolves the large `openclaw`
-// peer, and npm's own timeout is >=300s).
-async function runOpenclawCli(
-  effects: Parameters<Parameters<typeof sdk.Action.withInput>[3]>[0]['effects'],
-  name: string,
-  args: string[],
-  timeoutMs = 600_000,
-) {
-  return sdk.SubContainer.withTemp(
-    effects,
-    { imageId: 'openclaw' },
-    mainMounts(),
-    name,
-    async (subc) =>
-      subc.exec(
-        ['openclaw', ...args],
-        { user: 'node', env: CLI_ENV },
-        timeoutMs,
-      ),
-  )
-}
-
 /**
  * Read the installed plugin version, keeping "the probe failed" distinct from
  * "the plugin isn't installed". Both yield no version, but only the latter is
@@ -101,7 +74,7 @@ async function readInstalledPlugin(
 ): Promise<{ probed: boolean; version?: string }> {
   const list = await subcontainer.exec(
     ['openclaw', 'plugins', 'list', '--json'],
-    { user: 'node', env: CLI_ENV },
+    { user: 'node', env: OPENCLAW_CLI_ENV },
   )
   if (list.exitCode !== 0) return { probed: false }
   return {

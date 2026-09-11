@@ -1,78 +1,111 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
+import { rename } from 'fs/promises'
+import {
+  authProfilesJson,
+  defaultAgentId,
+} from '../fileModels/authProfiles.json'
+import { i18n } from '../i18n'
+import { sdk } from '../sdk'
+import { DOCTOR_TIMEOUT_MS, runOpenclawCli } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '2026.9.3:0',
+  version: '2026.9.4:0',
   releaseNotes: {
-    en_US: `Updates OpenClaw to 2026.9.3.
+    en_US: `Updates OpenClaw from 2026.7.1 to 2026.9.4.
 
-Updates are safer: core and plugin changes are rehearsed in isolated state before they go live, and an interrupted update can be recovered without stopping a healthy Gateway. Warm prompt caches now survive, and cold sessions and memory search do less redundant work.
+- Search past conversations, use interactive widgets and dashboards in chat, and see Mermaid diagrams rendered inline.
+- Request credentials through masked prompts, approve recurring automations once, and manage plugins from one Plugins workspace.
+- Faster chat on long histories, replies that survive a gateway restart, and safer updates with rollback and recovery.
 
-Also new: skills live in one persistent per-agent collection, sessions can be published as a revocable read-only transcript link, saved meeting notes are searchable and exportable, and provider accounts and their priority are managed in Models settings.
+**This update migrates OpenClaw's state database and session history and cannot be rolled back.** Back up the service before updating.
 
-The container now runs Node 26. OpenClaw 2026.9.3 no longer supports Node 22.
+**The SimpleX channel plugin must be updated to 2.0.0.** If you use SimpleX, submit Configure SimpleX after the update — a task will remind you.
 
-**OpenClaw 2026.9.3 includes database migrations and config changes.** If the service fails to start, check the logs and use the "Repair OpenClaw" action to run "openclaw doctor". If the logs mention a session import, use the same action to run "openclaw doctor --session-sqlite".
+**Every browser now needs a one-time approval after logging in to the Web UI.** When it stops at "Approve this browser", run the new **Approve Browser Pairing** action. A new **Repair OpenClaw** action runs OpenClaw's own doctor against the stopped service. The container now runs Node 26.
 
-**The SimpleX channel plugin must be updated afterwards to 2.0.0.** If you use SimpleX, submit the Configure SimpleX action after updating — the service raises a task to remind you.
+[Full upstream release notes](https://github.com/openclaw/openclaw/releases)`,
+    es_ES: `Actualiza OpenClaw de 2026.7.1 a 2026.9.4.
 
-[Full OpenClaw release notes](https://github.com/openclaw/openclaw/releases/tag/v2026.9.3)`,
-    es_ES: `Actualiza OpenClaw a la 2026.9.3.
+- Busca conversaciones anteriores, usa widgets y paneles interactivos en el chat y ve los diagramas Mermaid renderizados en línea.
+- Solicita credenciales mediante avisos enmascarados, aprueba automatizaciones recurrentes una sola vez y gestiona los complementos desde un único espacio de Complementos.
+- Chat más rápido con historiales largos, respuestas que sobreviven a un reinicio del gateway y actualizaciones más seguras con reversión y recuperación.
 
-Las actualizaciones son más seguras: los cambios del núcleo y de los complementos se ensayan en un estado aislado antes de activarse, y una actualización interrumpida puede recuperarse sin detener un Gateway en buen estado. Las cachés de prompts en caliente ahora se conservan, y las sesiones frías y la búsqueda en memoria hacen menos trabajo redundante.
+**Esta actualización migra la base de datos de estado y el historial de sesiones de OpenClaw y no se puede revertir.** Haz una copia de seguridad del servicio antes de actualizar.
 
-Novedades: las habilidades viven en una única colección persistente por agente, las sesiones pueden publicarse como un enlace de transcripción de solo lectura y revocable, las notas de reuniones guardadas se pueden buscar y exportar, y las cuentas de proveedor y su prioridad se gestionan en los ajustes de Modelos.
+**El complemento del canal SimpleX debe actualizarse a la versión 2.0.0.** Si usas SimpleX, envía Configurar SimpleX después de actualizar: una tarea te lo recordará.
 
-El contenedor ahora ejecuta Node 26. OpenClaw 2026.9.3 ya no admite Node 22.
+**Cada navegador necesita ahora una aprobación única tras iniciar sesión en la interfaz web.** Cuando se detenga en «Approve this browser», ejecuta la nueva acción **Aprobar emparejamiento del navegador**. La nueva acción **Reparar OpenClaw** ejecuta el propio doctor de OpenClaw con el servicio detenido. El contenedor ahora ejecuta Node 26.
 
-**OpenClaw 2026.9.3 incluye migraciones de base de datos y cambios de configuración.** Si el servicio no arranca, revisa el registro y usa la acción «Reparar OpenClaw» para ejecutar "openclaw doctor". Si el registro menciona una importación de sesiones, usa la misma acción para ejecutar "openclaw doctor --session-sqlite".
+[Notas de la versión completas](https://github.com/openclaw/openclaw/releases)`,
+    de_DE: `Aktualisiert OpenClaw von 2026.7.1 auf 2026.9.4.
 
-**El complemento del canal SimpleX debe actualizarse después a la versión 2.0.0.** Si usas SimpleX, ejecuta la acción Configurar SimpleX tras actualizar: el servicio crea una tarea para recordártelo.
+- Durchsuchen Sie frühere Unterhaltungen, nutzen Sie interaktive Widgets und Dashboards im Chat und sehen Sie Mermaid-Diagramme direkt gerendert.
+- Fordern Sie Zugangsdaten über maskierte Eingaben an, genehmigen Sie wiederkehrende Automatisierungen einmalig und verwalten Sie Plugins in einem gemeinsamen Plugin-Bereich.
+- Schnellerer Chat bei langen Verläufen, Antworten, die einen Gateway-Neustart überstehen, und sicherere Updates mit Rollback und Wiederherstellung.
 
-[Notas completas de OpenClaw](https://github.com/openclaw/openclaw/releases/tag/v2026.9.3)`,
-    de_DE: `Aktualisiert OpenClaw auf 2026.9.3.
+**Dieses Update migriert die Zustandsdatenbank und den Sitzungsverlauf von OpenClaw und kann nicht rückgängig gemacht werden.** Sichern Sie den Dienst vor dem Update.
 
-Updates sind sicherer: Kern- und Plugin-Änderungen werden in isoliertem Zustand geprobt, bevor sie aktiv werden, und ein abgebrochenes Update lässt sich wiederherstellen, ohne ein funktionierendes Gateway zu stoppen. Warme Prompt-Caches bleiben jetzt erhalten, und Kaltstart-Sitzungen sowie die Speichersuche leisten weniger überflüssige Arbeit.
+**Das SimpleX-Kanal-Plugin muss auf 2.0.0 aktualisiert werden.** Wenn Sie SimpleX nutzen, führen Sie nach dem Update „SimpleX konfigurieren“ aus – eine Aufgabe erinnert Sie daran.
 
-Ebenfalls neu: Skills liegen in einer dauerhaften Sammlung pro Agent, Sitzungen lassen sich als widerrufbarer, schreibgeschützter Transkript-Link veröffentlichen, gespeicherte Besprechungsnotizen sind durchsuchbar und exportierbar, und Anbieterkonten samt Priorität werden in den Modell-Einstellungen verwaltet.
+**Jeder Browser braucht nach der Anmeldung an der Web-Oberfläche jetzt eine einmalige Genehmigung.** Bleibt er bei „Approve this browser“ stehen, führen Sie die neue Aktion **Browser-Kopplung genehmigen** aus. Die neue Aktion **OpenClaw reparieren** führt OpenClaws eigenen Doctor bei gestopptem Dienst aus. Der Container läuft jetzt mit Node 26.
 
-Der Container läuft jetzt mit Node 26. OpenClaw 2026.9.3 unterstützt Node 22 nicht mehr.
+[Vollständige Release-Notes](https://github.com/openclaw/openclaw/releases)`,
+    pl_PL: `Aktualizuje OpenClaw z 2026.7.1 do 2026.9.4.
 
-**OpenClaw 2026.9.3 enthält Datenbankmigrationen und Konfigurationsänderungen.** Startet der Dienst nicht, prüfe das Protokoll und nutze die Aktion „OpenClaw reparieren", um "openclaw doctor" auszuführen. Nennt das Protokoll einen Sitzungsimport, führe mit derselben Aktion "openclaw doctor --session-sqlite" aus.
+- Przeszukuj wcześniejsze rozmowy, korzystaj z interaktywnych widżetów i pulpitów w czacie oraz oglądaj diagramy Mermaid renderowane bezpośrednio.
+- Proszenie o dane uwierzytelniające przez maskowane monity, jednorazowe zatwierdzanie cyklicznych automatyzacji i zarządzanie wtyczkami w jednym miejscu.
+- Szybszy czat przy długich historiach, odpowiedzi przetrwają restart bramy, a aktualizacje są bezpieczniejsze dzięki wycofywaniu i odzyskiwaniu.
 
-**Das SimpleX-Kanal-Plugin muss anschließend auf 2.0.0 aktualisiert werden.** Wenn du SimpleX nutzt, führe nach dem Update die Aktion „SimpleX konfigurieren" aus — der Dienst erstellt dafür eine Aufgabe als Erinnerung.
+**Ta aktualizacja migruje bazę danych stanu i historię sesji OpenClaw i nie można jej cofnąć.** Przed aktualizacją wykonaj kopię zapasową usługi.
 
-[Vollständige OpenClaw-Release-Notes](https://github.com/openclaw/openclaw/releases/tag/v2026.9.3)`,
-    pl_PL: `Aktualizuje OpenClaw do 2026.9.3.
+**Wtyczkę kanału SimpleX trzeba zaktualizować do wersji 2.0.0.** Jeśli używasz SimpleX, po aktualizacji uruchom Konfiguruj SimpleX – zadanie Ci o tym przypomni.
 
-Aktualizacje są bezpieczniejsze: zmiany w rdzeniu i wtyczkach są testowane w izolowanym stanie przed uruchomieniem, a przerwaną aktualizację można odzyskać bez zatrzymywania sprawnego Gatewaya. Ciepłe pamięci podręczne promptów są teraz zachowywane, a zimne sesje i wyszukiwanie w pamięci wykonują mniej zbędnej pracy.
+**Każda przeglądarka wymaga teraz jednorazowego zatwierdzenia po zalogowaniu do interfejsu WWW.** Gdy zatrzyma się na „Approve this browser”, uruchom nową akcję **Zatwierdź parowanie przeglądarki**. Nowa akcja **Napraw OpenClaw** uruchamia własnego doctora OpenClaw przy zatrzymanej usłudze. Kontener działa teraz na Node 26.
 
-Ponadto: umiejętności znajdują się w jednej trwałej kolekcji na agenta, sesje można opublikować jako odwoływalny link do transkrypcji tylko do odczytu, zapisane notatki ze spotkań można przeszukiwać i eksportować, a konta dostawców i ich priorytet są zarządzane w ustawieniach Modeli.
+[Pełne informacje o wydaniu](https://github.com/openclaw/openclaw/releases)`,
+    fr_FR: `Met à jour OpenClaw de 2026.7.1 vers 2026.9.4.
 
-Kontener działa teraz na Node 26. OpenClaw 2026.9.3 nie obsługuje już Node 22.
+- Recherchez dans vos conversations passées, utilisez des widgets et tableaux de bord interactifs dans le chat et affichez les diagrammes Mermaid directement rendus.
+- Demandez des identifiants via des invites masquées, approuvez une seule fois les automatisations récurrentes et gérez les plugins depuis un espace Plugins unique.
+- Chat plus rapide sur les longs historiques, réponses qui survivent à un redémarrage de la passerelle et mises à jour plus sûres avec retour arrière et récupération.
 
-**OpenClaw 2026.9.3 zawiera migracje bazy danych i zmiany konfiguracji.** Jeśli usługa nie startuje, sprawdź dziennik i użyj akcji „Napraw OpenClaw", aby uruchomić "openclaw doctor". Jeśli dziennik wspomina o imporcie sesji, tą samą akcją uruchom "openclaw doctor --session-sqlite".
+**Cette mise à jour migre la base de données d'état et l'historique des sessions d'OpenClaw et ne peut pas être annulée.** Sauvegardez le service avant de mettre à jour.
 
-**Wtyczkę kanału SimpleX trzeba następnie zaktualizować do wersji 2.0.0.** Jeśli używasz SimpleX, po aktualizacji uruchom akcję Konfiguruj SimpleX — usługa utworzy zadanie przypominające.
+**Le plugin du canal SimpleX doit être mis à jour vers la 2.0.0.** Si vous utilisez SimpleX, lancez Configurer SimpleX après la mise à jour : une tâche vous le rappellera.
 
-[Pełne informacje o wydaniu OpenClaw](https://github.com/openclaw/openclaw/releases/tag/v2026.9.3)`,
-    fr_FR: `Met à jour OpenClaw vers la 2026.9.3.
+**Chaque navigateur a désormais besoin d'une approbation unique après connexion à l'interface web.** Lorsqu'il s'arrête sur « Approve this browser », lancez la nouvelle action **Approuver l'appairage du navigateur**. La nouvelle action **Réparer OpenClaw** exécute le doctor d'OpenClaw sur le service arrêté. Le conteneur fonctionne désormais avec Node 26.
 
-Les mises à jour sont plus sûres : les changements du cœur et des plugins sont répétés dans un état isolé avant activation, et une mise à jour interrompue peut être récupérée sans arrêter une passerelle en bon état. Les caches de prompts chauds sont désormais préservés, et les sessions froides comme la recherche en mémoire effectuent moins de travail redondant.
-
-Également nouveau : les compétences résident dans une collection persistante par agent, une session peut être publiée sous forme de lien de transcription en lecture seule et révocable, les notes de réunion enregistrées sont consultables et exportables, et les comptes de fournisseurs ainsi que leur priorité se gèrent dans les réglages Modèles.
-
-Le conteneur fonctionne désormais avec Node 26. OpenClaw 2026.9.3 ne prend plus en charge Node 22.
-
-**OpenClaw 2026.9.3 comporte des migrations de base de données et des changements de configuration.** Si le service ne démarre pas, consultez les journaux et utilisez l'action « Réparer OpenClaw » pour exécuter "openclaw doctor". Si les journaux évoquent un import de sessions, lancez "openclaw doctor --session-sqlite" avec la même action.
-
-**Le plugin du canal SimpleX doit ensuite être mis à jour vers la 2.0.0.** Si vous utilisez SimpleX, lancez l'action Configurer SimpleX après la mise à jour : le service crée une tâche pour vous le rappeler.
-
-[Notes de version complètes d'OpenClaw](https://github.com/openclaw/openclaw/releases/tag/v2026.9.3)`,
+[Notes de version complètes](https://github.com/openclaw/openclaw/releases)`,
   },
   migrations: {
-    // Rolling back to 2026.7.1 is not survivable. 2026.9.3 migrates the state
-    // database and converts the legacy JSON session store to SQLite.
-    up: async ({ effects }) => {},
+    up: async ({ effects }) => {
+      // Before doctor runs: it archives this file where it sat as a retired source.
+      await rename(
+        sdk.volumes.main.subpath(
+          `.openclaw/agents/${defaultAgentId}/agent/auth-profiles.json`,
+        ),
+        authProfilesJson.path,
+      ).catch((e) => {
+        if (e.code !== 'ENOENT') throw e
+      })
+
+      for (const args of [
+        ['doctor', '--fix', '--non-interactive'],
+        ['doctor', '--session-sqlite', 'import', '--session-sqlite-all-agents'],
+      ]) {
+        const result = await runOpenclawCli(
+          effects,
+          'openclaw-doctor',
+          args,
+          DOCTOR_TIMEOUT_MS,
+        )
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `${i18n('OpenClaw could not migrate its state')} (openclaw ${args.join(' ')}, exit ${result.exitCode ?? result.exitSignal}):\n${String(result.stderr)}\n${String(result.stdout)}`,
+          )
+        }
+      }
+    },
     down: IMPOSSIBLE,
   },
 })

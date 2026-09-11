@@ -14,6 +14,18 @@ OpenClaw is installed into the image at build time by the official `openclaw.bot
 
   Pin that value verbatim in `Dockerfile` as `OPENCLAW_VERSION`. Never pin a `beta`/`alpha` dist-tag.
 
+  Two more pins move with it. Upstream drops Node lines between releases, so check the floor against the base image (`FROM node:<major>-bookworm-slim` in `Dockerfile`):
+
+  ```
+  npm view openclaw@<version> engines.node
+  ```
+
+  And the SimpleX plugin declares which OpenClaw it loads on, so raise `MIN_PLUGIN_VERSION` in `startos/actions/configureSimplex.ts` to the plugin release whose peer range admits the new OpenClaw (a startup task then asks users to re-submit Configure SimpleX):
+
+  ```
+  npm view @dangoldbj/openclaw-simplex version peerDependencies.openclaw
+  ```
+
   > [!WARNING]
   > **A `-N` suffix is a post-release correction upstream, but a _pre_-release to ExVer — never let it into the package version.**
   > Upstream ships fixes to an already-released version as `X.Y.Z-1`, `X.Y.Z-2`, … and moves the npm `latest` dist-tag onto them. ExVer reads that suffix as a prerelease and orders it _below_ plain `X.Y.Z`, so a package version of `2026.7.1-2:0` sorts under the published `2026.7.1:6` and StartOS would never offer it as an update.
@@ -28,7 +40,7 @@ OpenClaw is installed into the image at build time by the official `openclaw.bot
 
 ## Applying the bump
 
-- **OpenClaw** — edit `Dockerfile` and update the `OPENCLAW_VERSION` ARG default to the npm `latest` value (no `v` prefix), keeping any `-N` correction suffix. Then set `startos/versions/current.ts` per the warning above — base version only, downstream bumped.
+- **OpenClaw** — edit `Dockerfile` and update the `OPENCLAW_VERSION` ARG default to the npm `latest` value (no `v` prefix), keeping any `-N` correction suffix. Then set `startos/versions/current.ts` per the warning above — base version only, downstream bumped. If the new OpenClaw gates startup on a state migration of its own (`gateway.maintenance_required`, exit 78), run it from `migrations.up`; the packaging guide's versions page says when that earns `current.ts` its own file.
 - **GitHub CLI** — edit `Dockerfile` and update the `GH_VERSION` ARG default to the new version (no `v` prefix).
 
 After editing, confirm with `grep -rn '<OLD_VERSION>' --include='*.ts' --include=Dockerfile` that no stale references remain, then update `releaseNotes` in `startos/versions/current.ts` per the package's versioning conventions.
