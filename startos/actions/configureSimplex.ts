@@ -21,7 +21,7 @@ const { InputSpec, Value, Variants } = sdk
 // rejects npm ranges, so the spec pins this exact version; the version-aware
 // skip below still honors any newer build an operator installed out-of-band.
 // Uninstall/list by id. `--force` overwrites a partial/older install.
-const MIN_PLUGIN_VERSION = '1.8.0'
+const MIN_PLUGIN_VERSION = '2.0.0'
 const SIMPLEX_PLUGIN_SPEC = `@dangoldbj/openclaw-simplex@${MIN_PLUGIN_VERSION}`
 const SIMPLEX_PLUGIN_ID = 'openclaw-simplex'
 
@@ -281,7 +281,13 @@ export const configureSimplex = sdk.Action.withInput(
         const install = await runOpenclawCli(
           effects,
           'simplex-plugin-install',
-          ['plugins', 'install', SIMPLEX_PLUGIN_SPEC, '--force'],
+          [
+            'plugins',
+            'install',
+            SIMPLEX_PLUGIN_SPEC,
+            '--force',
+            '--accept-capabilities',
+          ],
         )
         if (install.exitCode !== 0) {
           const out = (

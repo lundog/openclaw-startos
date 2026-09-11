@@ -118,6 +118,20 @@ const dict = {
   'Could not uninstall the SimpleX plugin: ': 91,
   'The SimpleX Websocket Bridge is not reachable on the internal network. Make sure it is installed and running, then try again.': 92,
   'Submit Configure SimpleX to upgrade the SimpleX plugin': 93,
+
+  // repair-openclaw action
+  'Repair OpenClaw': 94,
+  'Run one of OpenClaw’s maintenance commands against the stopped service.': 95,
+  Command: 96,
+  'Repair config and database (doctor --fix)': 97,
+  'Apply recommended repairs': 98,
+  'If not checked, no changes will be made.': 99,
+  'Import sessions to SQLite (doctor --session-sqlite)': 100,
+  'Apply changes': 101,
+  'Maintenance Result': 102,
+  'Exit Code': 104,
+  Output: 105,
+  'No output': 107,
 } as const
 
 /**
