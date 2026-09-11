@@ -1,5 +1,5 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
-import { rename } from 'fs/promises'
+import { rename, rm } from 'fs/promises'
 import {
   authProfilesJson,
   defaultAgentId,
@@ -21,7 +21,7 @@ export const current = VersionInfo.of({
 
 **The SimpleX channel plugin must be updated to 2.0.0.** If you use SimpleX, submit Configure SimpleX after the update — a task will remind you.
 
-**Every browser now needs a one-time approval after logging in to the Web UI.** When it stops at "Approve this browser", run the new **Approve Browser Pairing** action. A new **Repair OpenClaw** action runs OpenClaw's own doctor against the stopped service. The container now runs Node 26.
+**Every browser now needs a one-time approval after logging in to the Web UI.** When it stops at "Approve this browser", run the new **Approve Browser Pairing** action. A new **Repair OpenClaw** action runs OpenClaw's own doctor against the stopped service. The container now runs Node 26. Heartbeat instructions live in the gateway configuration now; the workspace \`HEARTBEAT.md\` is gone.
 
 [Full upstream release notes](https://github.com/openclaw/openclaw/releases)`,
     es_ES: `Actualiza OpenClaw de 2026.7.1 a 2026.9.4.
@@ -34,7 +34,7 @@ export const current = VersionInfo.of({
 
 **El complemento del canal SimpleX debe actualizarse a la versión 2.0.0.** Si usas SimpleX, envía Configurar SimpleX después de actualizar: una tarea te lo recordará.
 
-**Cada navegador necesita ahora una aprobación única tras iniciar sesión en la interfaz web.** Cuando se detenga en «Approve this browser», ejecuta la nueva acción **Aprobar emparejamiento del navegador**. La nueva acción **Reparar OpenClaw** ejecuta el propio doctor de OpenClaw con el servicio detenido. El contenedor ahora ejecuta Node 26.
+**Cada navegador necesita ahora una aprobación única tras iniciar sesión en la interfaz web.** Cuando se detenga en «Approve this browser», ejecuta la nueva acción **Aprobar emparejamiento del navegador**. La nueva acción **Reparar OpenClaw** ejecuta el propio doctor de OpenClaw con el servicio detenido. El contenedor ahora ejecuta Node 26. Las instrucciones del heartbeat viven ahora en la configuración del gateway; el \`HEARTBEAT.md\` del espacio de trabajo desaparece.
 
 [Notas de la versión completas](https://github.com/openclaw/openclaw/releases)`,
     de_DE: `Aktualisiert OpenClaw von 2026.7.1 auf 2026.9.4.
@@ -47,7 +47,7 @@ export const current = VersionInfo.of({
 
 **Das SimpleX-Kanal-Plugin muss auf 2.0.0 aktualisiert werden.** Wenn Sie SimpleX nutzen, führen Sie nach dem Update „SimpleX konfigurieren“ aus – eine Aufgabe erinnert Sie daran.
 
-**Jeder Browser braucht nach der Anmeldung an der Web-Oberfläche jetzt eine einmalige Genehmigung.** Bleibt er bei „Approve this browser“ stehen, führen Sie die neue Aktion **Browser-Kopplung genehmigen** aus. Die neue Aktion **OpenClaw reparieren** führt OpenClaws eigenen Doctor bei gestopptem Dienst aus. Der Container läuft jetzt mit Node 26.
+**Jeder Browser braucht nach der Anmeldung an der Web-Oberfläche jetzt eine einmalige Genehmigung.** Bleibt er bei „Approve this browser“ stehen, führen Sie die neue Aktion **Browser-Kopplung genehmigen** aus. Die neue Aktion **OpenClaw reparieren** führt OpenClaws eigenen Doctor bei gestopptem Dienst aus. Der Container läuft jetzt mit Node 26. Die Heartbeat-Anweisungen liegen jetzt in der Gateway-Konfiguration; die \`HEARTBEAT.md\` im Arbeitsbereich entfällt.
 
 [Vollständige Release-Notes](https://github.com/openclaw/openclaw/releases)`,
     pl_PL: `Aktualizuje OpenClaw z 2026.7.1 do 2026.9.4.
@@ -60,7 +60,7 @@ export const current = VersionInfo.of({
 
 **Wtyczkę kanału SimpleX trzeba zaktualizować do wersji 2.0.0.** Jeśli używasz SimpleX, po aktualizacji uruchom Konfiguruj SimpleX – zadanie Ci o tym przypomni.
 
-**Każda przeglądarka wymaga teraz jednorazowego zatwierdzenia po zalogowaniu do interfejsu WWW.** Gdy zatrzyma się na „Approve this browser”, uruchom nową akcję **Zatwierdź parowanie przeglądarki**. Nowa akcja **Napraw OpenClaw** uruchamia własnego doctora OpenClaw przy zatrzymanej usłudze. Kontener działa teraz na Node 26.
+**Każda przeglądarka wymaga teraz jednorazowego zatwierdzenia po zalogowaniu do interfejsu WWW.** Gdy zatrzyma się na „Approve this browser”, uruchom nową akcję **Zatwierdź parowanie przeglądarki**. Nowa akcja **Napraw OpenClaw** uruchamia własnego doctora OpenClaw przy zatrzymanej usłudze. Kontener działa teraz na Node 26. Instrukcje heartbeatu znajdują się teraz w konfiguracji bramy; plik \`HEARTBEAT.md\` w obszarze roboczym znika.
 
 [Pełne informacje o wydaniu](https://github.com/openclaw/openclaw/releases)`,
     fr_FR: `Met à jour OpenClaw de 2026.7.1 vers 2026.9.4.
@@ -73,7 +73,7 @@ export const current = VersionInfo.of({
 
 **Le plugin du canal SimpleX doit être mis à jour vers la 2.0.0.** Si vous utilisez SimpleX, lancez Configurer SimpleX après la mise à jour : une tâche vous le rappellera.
 
-**Chaque navigateur a désormais besoin d'une approbation unique après connexion à l'interface web.** Lorsqu'il s'arrête sur « Approve this browser », lancez la nouvelle action **Approuver l'appairage du navigateur**. La nouvelle action **Réparer OpenClaw** exécute le doctor d'OpenClaw sur le service arrêté. Le conteneur fonctionne désormais avec Node 26.
+**Chaque navigateur a désormais besoin d'une approbation unique après connexion à l'interface web.** Lorsqu'il s'arrête sur « Approve this browser », lancez la nouvelle action **Approuver l'appairage du navigateur**. La nouvelle action **Réparer OpenClaw** exécute le doctor d'OpenClaw sur le service arrêté. Le conteneur fonctionne désormais avec Node 26. Les instructions du heartbeat résident désormais dans la configuration de la passerelle ; le \`HEARTBEAT.md\` de l'espace de travail disparaît.
 
 [Notes de version complètes](https://github.com/openclaw/openclaw/releases)`,
   },
@@ -87,6 +87,10 @@ export const current = VersionInfo.of({
         authProfilesJson.path,
       ).catch((e) => {
         if (e.code !== 'ENOENT') throw e
+      })
+      // Doctor would import it into the heartbeat scratch, doubling the config prompt.
+      await rm(sdk.volumes.main.subpath('.openclaw/workspace/HEARTBEAT.md'), {
+        force: true,
       })
 
       for (const args of [

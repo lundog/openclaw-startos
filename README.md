@@ -77,9 +77,9 @@ One volume, holding the agent and everything it knows.
 | `.startos/config.yaml`        | The package | Where `start-cli` points                |
 | `simplex.json`                | An action   | Whether SimpleX file exchange is on     |
 
-**`SOUL.md`, `IDENTITY.md` and `HEARTBEAT.md` are re-copied from the image on every install and upgrade**, so an upstream revision of the agent's own instructions reaches an existing install. **`MEMORY.md` is not** — it is seeded once and then left alone, because it is what the agent has accumulated.
+**`SOUL.md` and `IDENTITY.md` are re-copied from the image on every install and upgrade**, so an upstream revision of the agent's own instructions reaches an existing install. **`MEMORY.md` is not** — it is seeded once and then left alone, because it is what the agent has accumulated.
 
-**Every start rewrites one section of `MEMORY.md`**: a snapshot of the server's metrics, packages, notifications, gateways, disks, and backup targets. It is how the agent knows what it is running on — and it means the memory file contains an inventory of your server.
+**Every start rewrites one section of `MEMORY.md`**: a snapshot of the server's metrics, packages, notifications, gateways, disks, and backup targets. It is how the agent knows what it is running on — and it means the memory file contains an inventory of your server. **A daily heartbeat refreshes the three most volatile subsections** — metrics, packages, notifications. Its instructions are the heartbeat prompt in the configuration (`agents.defaults.heartbeat`), written by init and delivered nowhere (`target: none`): OpenClaw runs heartbeat instructions from its database, never from a workspace `HEARTBEAT.md`, and the default delivery route skips the run entirely until a chat channel has an owner.
 
 ## File Models
 
@@ -260,7 +260,7 @@ A restored instance comes back configured and remembers what it knew. The `start
 5. **The agent's memory contains a server inventory**, rewritten every start.
 6. **Local backends must be running and healthy**, or the gateway has no model.
 7. **A cloud provider sends your conversations to that provider.** Only a local backend keeps them on the box.
-8. **`SOUL.md`, `IDENTITY.md` and `HEARTBEAT.md` are overwritten on every upgrade**; edits to them do not survive.
+8. **`SOUL.md` and `IDENTITY.md` are overwritten on every upgrade**, and the heartbeat prompt is rewritten on every init; edits to them do not survive. Put your own heartbeat checklist in the monitor scratch (`openclaw cron scratch`), which is appended to the prompt and left alone.
 9. **One agent.** The package configures the default agent only.
 
 ---

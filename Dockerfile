@@ -41,7 +41,6 @@ COPY skills/start-cli/SKILL.md /opt/skills/start-cli/SKILL.md
 COPY workspace/SOUL.md /opt/workspace/SOUL.md
 COPY workspace/IDENTITY.md /opt/workspace/IDENTITY.md
 COPY workspace/MEMORY.md /opt/workspace/MEMORY.md
-COPY workspace/HEARTBEAT.md /opt/workspace/HEARTBEAT.md
 
 # Set runtime environment variables
 ENV NODE_ENV=production
