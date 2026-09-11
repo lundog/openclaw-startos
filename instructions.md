@@ -5,7 +5,7 @@ OpenClaw runs an LLM of your choosing. On its own it's a chat agent with no acce
 ## Documentation
 
 - [Messaging channels](https://docs.openclaw.ai/channels) — connecting Telegram, WhatsApp, SimpleX, and other chat platforms to your agent.
-- [Personality and identity](https://docs.openclaw.ai/pi) — shaping how your agent behaves through the workspace files (SOUL, IDENTITY, MEMORY, HEARTBEAT).
+- [Personality and identity](https://docs.openclaw.ai/pi) — shaping how your agent behaves through the workspace files (SOUL, IDENTITY, MEMORY).
 - [Tools](https://docs.openclaw.ai/tools) — the toolset the agent can call.
 - [Models](https://docs.openclaw.ai/models) — supported LLM providers and how model selection and fallback work.
 - [Gateway](https://docs.openclaw.ai/gateway) — the control panel and WebChat that this package exposes.
@@ -14,7 +14,7 @@ OpenClaw runs an LLM of your choosing. On its own it's a chat agent with no acce
 
 - **The OpenClaw Gateway**, served over the **Web UI** interface — a browser-based control panel and WebChat where you talk to your agent.
 - **`start-cli` bundled in the container**, so once you authenticate the package (see _Login to StartOS_ below) the agent can manage your StartOS server directly: read service status, install or remove packages, send notifications, and so on.
-- **Workspace files preserved across upgrades.** SOUL, IDENTITY, MEMORY, and HEARTBEAT live on the package's `main` volume; MEMORY is preserved on updates while the others are kept in sync with package defaults.
+- **Workspace files preserved across upgrades.** SOUL, IDENTITY, and MEMORY live on the package's `main` volume; MEMORY is preserved on updates while the others are kept in sync with package defaults. A daily heartbeat refreshes the server snapshot in MEMORY; add your own heartbeat checklist as monitor scratch (`openclaw cron scratch`) rather than editing the package's prompt.
 - **A persistent server snapshot in MEMORY.md** captured on each startup so the agent has fresh context about the host it's running on.
 
 ## Getting set up

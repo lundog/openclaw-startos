@@ -1,5 +1,6 @@
 import { mkdir } from 'fs/promises'
 import { openclawJson } from '../fileModels/openclaw.json'
+import { HEARTBEAT_PROMPT } from '../heartbeat'
 import { startCliConfigYaml } from '../fileModels/startCliConfig.yaml'
 import { sdk } from '../sdk'
 import { mainMounts } from '../utils'
@@ -28,7 +29,6 @@ export const initializeService = sdk.setupOnInit(async (effects, kind) => {
           'cp',
           '/opt/workspace/SOUL.md',
           '/opt/workspace/IDENTITY.md',
-          '/opt/workspace/HEARTBEAT.md',
           '/data/.openclaw/workspace/',
         ],
         { user: 'root' },
@@ -57,7 +57,8 @@ export const initializeService = sdk.setupOnInit(async (effects, kind) => {
     },
     agents: {
       defaults: {
-        heartbeat: { every: '24h' },
+        // The default route, `owner`, skips the run (`no-route`) until a chat channel has an owner.
+        heartbeat: { every: '24h', target: 'none', prompt: HEARTBEAT_PROMPT },
       },
     },
     skills: {

@@ -54,6 +54,7 @@ const modelSchema = z.object({
 const heartbeatSchema = z.object({
   every: z.string().catch('24h'),
   target: z.string().optional().catch(undefined),
+  prompt: z.string().optional().catch(undefined),
 })
 
 const defaultsSchema = z.object({
